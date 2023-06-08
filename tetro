@@ -1,0 +1,360 @@
+<HTMLコード>
+
+<!DOCTYPE html>
+<html lang="ja">
+ <head>
+  <metacharset="utf-8">
+  <title>テトリス_0CES2103</title>
+ </head>
+ <body>
+  <canvas id="can"></canvas>
+  <script value='text/javascript' src='javascript.js'></script>
+ </body>
+<html>
+
+<JSコード>
+
+let can = document.getElementById("can");
+let con = can.getContext("2d");
+
+//フィールドのサイズ(定義)
+const FIELD_COL = 10;
+const FIELD_ROW = 20;
+
+//ブロックのサイズ(px)
+const BLOCK_SIZE = 30;
+
+//スクリーンサイズ
+const SCREEN_W = BLOCK_SIZE * FIELD_COL;
+const SCREEN_H = BLOCK_SIZE * FIELD_ROW;
+
+can.width = SCREEN_W;
+can.height = SCREEN_H;
+can.style.border = "4px solid #555";
+//ミノのサイズ
+const MINO_SIZE = 4;
+
+//ミノの色
+const MINO_COLORS = [
+	"#000",	//0.空
+	"#6CF",	//1.水色
+	"#F92",	//2.オレンジ
+	"#66F",	//3.青
+	"#C5C",	//4.紫
+	"#FD2",	//5.黄色
+	"#F44",	//6.赤
+	"#5B5"	//7.緑
+];
+
+//ミノの定義
+const MINO_TYPES = [
+	
+	[],	//0.空
+	
+	[	//1.I
+		[0,0,0,0],
+		[1,1,1,1],
+		[0,0,0,0],
+		[0,0,0,0]
+	],
+
+	[	//2.L
+		[0,1,0,0],
+		[0,1,0,0],
+		[0,1,1,0],
+		[0,0,0,0]
+	],
+
+	[	//3.J
+		[0,0,1,0],
+		[0,0,1,0],
+		[0,1,1,0],
+		[0,0,0,0]
+	],
+
+	[	//4.T
+		[0,1,0,0],
+		[0,1,1,0],
+		[0,1,0,0],
+		[0,0,0,0]
+	],
+
+	[	//5.O
+		[0,0,0,0],
+		[0,1,1,0],
+		[0,1,1,0],
+		[0,0,0,0]
+	],
+
+	[	//6.Z
+		[0,0,0,0],
+		[1,1,0,0],
+		[0,1,1,0],
+		[0,0,0,0]
+	],
+
+	[	//7.S
+		[0,0,0,0],
+		[0,1,1,0],
+		[1,1,0,0],
+		[0,0,0,0]
+	],
+
+];
+
+const START_X = FIELD_COL / 2 - MINO_SIZE / 2;
+const START_Y = 0;
+
+//ミノの本体
+let mino;
+
+//ミノの形
+let mino_t;
+
+//ミノの座標
+let mino_x = START_X;
+let mino_y = START_Y;
+
+//フィールド本体
+let field = [];
+
+//ゲームオーバー
+let over = false;
+
+//ミノをランダムで出現
+mino_t = Math.floor(Math.random() * (MINO_TYPES.length - 1) + 1);
+mino = MINO_TYPES[mino_t];
+
+init();
+drawAll();
+
+//落下速度
+const GAME_SPEED = 600;
+
+
+setInterval(dropMino,GAME_SPEED);
+
+//フィールドを初期化
+function init()
+{	
+	//フィールドをクリア
+	for(let y=0;y<FIELD_ROW;y++)
+	{
+		field[y] = [];
+		for(let x=0;x<FIELD_COL;x++)
+		{
+			field[y][x] = 0;
+		}
+
+	}
+	
+}
+
+//1つのブロックを描画する
+function drawBlock(x,y,c)
+{
+	let px = x * BLOCK_SIZE;
+	let py = y * BLOCK_SIZE;
+
+	con.fillStyle = MINO_COLORS[c];
+	con.fillRect(px,py,BLOCK_SIZE,BLOCK_SIZE);
+	con.strokeStyle = "black";
+	con.strokeRect(px,py,BLOCK_SIZE,BLOCK_SIZE);
+
+}
+//フィールドとミノを描画する
+function drawAll()
+{
+	con.clearRect(0,0,SCREEN_W,SCREEN_H);
+	
+	for(let y=0;y<FIELD_ROW;y++)
+	{
+		for(let x=0;x<FIELD_COL;x++)
+		{
+			if(field[y][x])
+			{
+				drawBlock(x,y,field[y][x]);
+			}
+		}
+	}	
+	
+	for(let y=0;y<MINO_SIZE;y++)
+	{
+		for(let x=0;x<MINO_SIZE;x++)
+		{
+			if(mino[y][x])
+			{
+				drawBlock(mino_x+x,mino_y+y,mino_t);
+			
+			}
+		
+		}
+
+
+	}
+	
+	if(over)
+	{
+		let s = "GAME OVER";
+		con.font = "50px 'ＭＳ ゴシック'";
+		let w = con.measureText(s).width;
+		let x = SCREEN_W/2 - w/2;
+		let y = SCREEN_H/2 - 20;
+		con.lineWidth = 4;
+		con.strokeText(s,x,y);
+		con.fillStyle = "red";
+		con.fillText(s,x,y);
+		
+	}
+}
+
+//当たり判定
+function checkMove(mx,my,nmino)
+{	
+	if(nmino == undefined) nmino = mino;
+	
+	for(let y=0;y<MINO_SIZE;y++)
+	{
+		for(let x=0;x<MINO_SIZE;x++)
+		{
+			if( nmino[y][x] )
+			{	
+				
+				let nx = mino_x + mx + x;
+				let ny = mino_y + my + y;
+				
+				if(ny<0 || nx<0 ||
+					ny >= FIELD_ROW || nx >= FIELD_COL ||
+						field[ny][nx])
+				{
+					return false;
+				}
+			}
+		}
+	}
+	
+	return true;
+}
+
+//ミノを９０度回転させる
+function rotate()
+{
+	let nmino = [];
+	
+	for(let y=0;y<MINO_SIZE;y++)
+	{
+		nmino[y] = [];
+		for(let x=0;x<MINO_SIZE;x++)
+		{
+			nmino[y][x] = mino[MINO_SIZE-x-1][y];
+		}
+	}
+	
+	return nmino;
+}
+
+//フィールドに固定
+function fixMino()
+{
+	for(let y=0;y<MINO_SIZE;y++)
+	{
+		for(let x=0;x<MINO_SIZE;x++)
+		{
+			if(mino[y][x])
+			{
+				field[mino_y + y][mino_x + x] = mino_t;
+			}
+		}
+	}
+}
+
+//ラインが揃ったかチェック
+function checkLine()
+{
+	let line_c = 0;
+	
+	for(let y=0;y<FIELD_ROW;y++)
+	{
+		let flag = true;
+		
+		for(let x=0;x<FIELD_COL;x++)
+		{
+			if(!field[y][x])
+			{
+				flag = false;
+				break;
+			}
+		}
+		
+		if(flag)
+		{
+			line_c++;
+			
+
+			for(let ny=y;ny>0;ny--)
+			{				
+				for(let nx=0;nx<FIELD_COL;nx++)
+				{
+					field[ny][nx] = field[ny-1][nx];
+				}
+				
+			}
+		}
+	}
+}
+
+//ブロックが落ちる
+function dropMino()
+{
+	
+	if(over)return;
+	
+	if( checkMove(0,1) ) mino_y++;
+	
+	else
+	{
+		fixMino();
+		checkLine();
+		mino_t = Math.floor(Math.random() * (MINO_TYPES.length - 1)) + 1;
+		mino = MINO_TYPES[mino_t];
+		mino_x = START_X;
+		mino_y = START_Y;
+		
+		if( !checkMove(0,0) )
+		{
+			over = true;
+		}
+	}
+	
+	drawAll();
+}
+
+//キーボード操作
+document.onkeydown = function(e)
+{	
+	
+	if(over)return;
+	
+	switch(e.keyCode)
+	{
+		case 37://左キー
+		 if(checkMove(-1,0))mino_x--;
+		 break;
+		case 38://上キー
+		 //if(checkMove(0,-1))mino_y--;
+		 break;
+		case 39://右キー
+		 if(checkMove(1,0))mino_x++;
+		 break;
+		case 40://下キー
+		 if(checkMove(0,1))mino_y++;
+		 break;
+		case 32://スペース
+		 let nmino = rotate();
+		 if( checkMove(0,0,nmino) ) mino = nmino;
+		 break;
+	}
+	
+	drawAll();
+}
+
